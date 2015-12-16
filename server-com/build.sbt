@@ -10,6 +10,7 @@ libraryDependencies ++= Seq(
   jdbc,
   cache,
   ws,
+  "javax.websocket" % "javax.websocket-api" % "1.1",
   specs2 % Test
 )
 
