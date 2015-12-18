@@ -1,5 +1,8 @@
 logs
 target
+bin
+.cache-main
+.cache-tests
 /.idea
 /.idea_modules
 /.classpath
