@@ -2,6 +2,7 @@ package controllers
 
 import play.api._
 import play.api.mvc._
+import akka.actor._
 
 class SocketClientController extends Controller {
 
@@ -9,8 +10,9 @@ class SocketClientController extends Controller {
     Ok("")
   }
 
-  def remote = Action {
-    Ok("")
+  def remote(name: String) = WebSocket.tryAcceptWithActor[JsValue, JsValue] {
+    request =>
+      RPCHub.join(name)
   }
 
 }
