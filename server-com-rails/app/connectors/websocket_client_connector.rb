@@ -1,6 +1,3 @@
-require 'rubygems'
-require 'websocket-client-simple'
-
 class WebsocketClientConnector
 
   def initialize(connection_target_name, connection_endpoint_url)

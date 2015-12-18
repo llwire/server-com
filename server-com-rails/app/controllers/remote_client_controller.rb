@@ -1,18 +1,19 @@
-require 'rubygems'
-require 'websocket-rails'
-
 class RemoteClientController < WebsocketRails::BaseController
 
-  def connected
-    puts '-'*40
+  def user_connected
+    puts 'Connected ...'
   end
 
-  def disconnected
-    puts '&'*40
+  def user_disconnected
+    puts 'Disconnected ...'
   end
 
-  def message
-    puts ')'*40
+  def connection_closed
+    puts 'Connection closed ...'
+  end
+
+  def new_message
+    puts 'New message!'
   end
 
 end
