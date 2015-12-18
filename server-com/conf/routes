@@ -8,3 +8,7 @@ GET     /                           controllers.Application.index
 # TX WebSocket Endpoint
 POST    /rpc/init                   controllers.RemoteProcedureCall.init
 POST    /rpc/send                   controllers.RemoteProcedureCall.send
+
+# Client WebSocket Endpoint
+GET    /client/local               controllers.SocketClientController.local
+GET    /client/remote              controllers.SocketClientController.remote
