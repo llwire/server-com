@@ -1,33 +1,42 @@
-class WebsocketClientConnector
+require  'singleton'
 
-  def initialize(connection_target_name, connection_endpoint_url)
+class WebsocketClientConnector
+  include Singleton
+
+  def initialize
     @@connections ||= {}
     @connection_attempts ||= 0
-    setup(connection_target_name, connection_endpoint_url)
   end
 
-  def send_message(message)
-    @connection.send(message)
+  def send_message(connection_channel, message)
+    connection = @@connections[connection_channel]
+    puts connection
+    connection.send(message)
   end
 
-  private
+  def connection_to(connection_channel, connection_url)
+    connection = WebSocket::Client::Simple.connect connection_url
+    @@connections[connection_channel] = connection
 
-  def setup(connection_target_name, connection_endpoint_url)
-    @connection = WebSocket::Client::Simple.connect connection_endpoint_url
-    @@connections[connection_target_name] = @connection
-
-    @connection.on :message do |message|
-      handle_message(message)
+    connection.on :message do |message|
+      puts message
+      WebsocketClientConnector.instance.handle_message(connection_channel, message)
     end
 
-    @connection.on :error do |error|
-      @connection_attempts += 1
-      setup(connection_target_name, connection_endpoint_url) if @connection_attempts < 5
+    connection.on :close do |error|
+      puts "CLOSE!"
+      @@connections.delete(connection_channel)
+    end
+
+    connection.on :error do |error|
+      puts error
+      @@connections.delete(connection_channel)
     end
   end
 
-  def handle_message(message)
+  def handle_message(target, message)
     puts message
+    send_message(target, message)
   end
 
 end

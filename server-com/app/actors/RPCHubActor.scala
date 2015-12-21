@@ -21,10 +21,11 @@ class RPCHubActor extends Actor with ActorLogging{
     }
     case Host => {
       host = Some(sender)
+      context watch sender
     }
     case rxMsg:RemoteMessage => {
       val localHost = host.orNull
-      requests.put(rxMsg.uuid, rxMsg.channel)
+      requests.put(rxMsg.id, rxMsg.channel)
       if(localHost != null)
         localHost ! rxMsg
     }
@@ -37,28 +38,20 @@ class RPCHubActor extends Actor with ActorLogging{
         responseChannel ! txResp
     }
     case Terminated(socketActor) => {
-      Logger.info("Actor terminated")
-      if(host.orNull == socketActor)
+      if(host.orNull == socketActor){
+        Logger.info("Host terminated")
         host = None
-      else
+      }
+      else {
+        Logger.info("Requester terminated")
         remoteClients -= socketActor
+      }
     }
   }
 }
 
 object RPCHubActor {
-  case class RemoteMessage(uuid:String, channel: ActorRef, data: JsValue)
-  object RemoteMessage {
-    implicit val remoteMessageWrites = new Writes[RemoteMessage] {
-      def writes(remoteMessage: RemoteMessage): JsValue = {
-        Json.obj(
-          "uuid" -> remoteMessage.uuid,
-          "data" -> remoteMessage.data
-        )
-      }
-    }
-  }
-  
+  case class RemoteMessage(id:String, channel: ActorRef, data: JsValue)
   case class LocalResponse(target:String, response: JsValue)
   
   val rpcHub = Akka.system().actorOf(Props[RPCHubActor])
@@ -67,4 +60,3 @@ object RPCHubActor {
 
 object Requester
 object Host
-object Ping
