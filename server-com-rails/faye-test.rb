@@ -1,16 +1,26 @@
 require 'faye/websocket'
 require 'eventmachine'
+require 'json'
 
 EM.run {
-  ws = Faye::WebSocket::Client.new('ws://localhost:9000/websocket')
+  ws = Faye::WebSocket::Client.new('ws://localhost:9000/client/remote')
 
   ws.on :open do |event|
     p [:open]
-    ws.send('["new_message", {"id":1213, "data":"This is a test"}]')
+    msg = {
+      jsonrpc: "2.0",
+      method: "echo",
+      data: {
+        x: "test"
+      },
+      id: "iowirpqiwr"
+    }
+    ws.send(msg.to_json)
   end
 
   ws.on :message do |event|
     p [:message, event.data]
+    ws.send(event.data.to_s)
   end
 
   ws.on :close do |event|

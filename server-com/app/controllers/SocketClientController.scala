@@ -14,7 +14,7 @@ class SocketClientController extends Controller {
     request =>
       out => {
         Logger.info("wsWithActor, host client connected")
-        SocketActor.props(UUID.randomUUID().toString())(out)(Host)
+        SocketActor.props(out)(Host)
       }
   }
   
@@ -22,7 +22,7 @@ class SocketClientController extends Controller {
     request =>
       out => {
         Logger.info("wsWithActor, remote client connected")
-        SocketActor.props(UUID.randomUUID().toString())(out)(Requester)
+        SocketActor.props(out)(Requester)
       }
   }
 

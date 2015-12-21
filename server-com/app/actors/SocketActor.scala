@@ -5,19 +5,29 @@ import play.api.Play.current
 import akka.event.LoggingReceive
 import play.api._
 import play.api.libs.json._
+import scala.concurrent.duration._
+import play.api.libs.concurrent.Execution.Implicits._
 import RPCHubActor.{LocalResponse, RemoteMessage}
 import scala.xml.Utility
 
-class SocketActor(uuid: String, rpcHub: ActorRef, out: ActorRef, actorMode: Any) extends Actor with ActorLogging {
-  val requesterId = uuid
+class SocketActor(rpcHub: ActorRef, out: ActorRef, actorMode: Any) extends Actor with ActorLogging {
   override def preStart() = {
     RPCHubActor() ! actorMode
   }
   
+  val heartbeat = context.system.scheduler.schedule(15 seconds, 15 seconds, self, Ping)
+  
   def receive = LoggingReceive {
+    case Ping => {
+      Logger.info("Heartbeat")
+      out ! Json.obj()
+    }
     case js:JsValue if(actorMode == Requester) => {
       Logger.info("Requester: send message to hub -> " + js.toString())
-      rpcHub ! new RemoteMessage(requesterId, self, js)
+      extractTarget(js) map {
+        requesterId =>
+          rpcHub ! new RemoteMessage(requesterId, self, js)
+      }
     }
     case js:JsValue if(actorMode == Host) => {
       Logger.info("Host: send response to hub -> " + js.toString())
@@ -28,7 +38,7 @@ class SocketActor(uuid: String, rpcHub: ActorRef, out: ActorRef, actorMode: Any)
     }
     case rxMsg:RemoteMessage if(actorMode == Host) => {
       Logger.info("Host: received remote message from hub -> " + rxMsg.data.toString())
-      out ! Json.toJson(rxMsg)
+      out ! rxMsg.data
     }
     case txResp:LocalResponse if(actorMode == Requester) => {
       Logger.info("Requester: received response from hub -> " + txResp.response.toString())
@@ -37,10 +47,12 @@ class SocketActor(uuid: String, rpcHub: ActorRef, out: ActorRef, actorMode: Any)
   }
   
   def extractTarget(rootObject:JsValue) = {
-    (rootObject \ "uuid").validate[String] map { Utility.escape(_) }
+    (rootObject \ "id").validate[String] map { Utility.escape(_) }
   }
 }
 
 object SocketActor {
-  def props(uuid: String)(out: ActorRef)(actorMode:Any) = Props(new SocketActor(uuid, RPCHubActor(), out, actorMode))
+  def props(out: ActorRef)(actorMode:Any) = Props(new SocketActor(RPCHubActor(), out, actorMode))
 }
+
+object Ping
