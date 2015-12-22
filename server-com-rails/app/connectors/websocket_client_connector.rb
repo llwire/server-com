@@ -14,6 +14,10 @@ class WebsocketClientConnector
     connection.send(message)
   end
 
+  def channel_exists?(connection_channel)
+    @@connections.has_key(connection_channel)
+  end
+
   def connection_to(connection_channel, connection_url)
     connection = WebSocket::Client::Simple.connect connection_url
     @@connections[connection_channel] = connection
@@ -23,13 +27,14 @@ class WebsocketClientConnector
       WebsocketClientConnector.instance.handle_message(connection_channel, message)
     end
 
-    connection.on :close do |error|
-      puts "CLOSE!"
+    connection.on :close do |event|
       @@connections.delete(connection_channel)
     end
 
     connection.on :error do |error|
-      puts error
+      puts "Error: #{error}"
+      puts "Closing connection ..."
+      @@connections[connection_channel].close
       @@connections.delete(connection_channel)
     end
   end
