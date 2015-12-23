@@ -1,4 +1,5 @@
-require  'singleton'
+require 'singleton'
+require 'json'
 
 class WebsocketClientConnector
   include Singleton
@@ -10,12 +11,21 @@ class WebsocketClientConnector
 
   def send_message(connection_channel, message)
     connection = @@connections[connection_channel]
-    puts connection
-    connection.send(message)
+    connection.send(message.to_json)
   end
 
   def channel_exists?(connection_channel)
-    @@connections.has_key(connection_channel)
+    @@connections.key?(connection_channel)
+  end
+
+  def get_or_create_connection(connection_channel, connection_url)
+    return @@connections[connection_channel] if channel_exists?(connection_channel)
+    return connection_to(connection_channel, connection_url)
+  end
+
+  def close_connection(connection_channel)
+    return unless channel_exists?(connection_channel)
+    @@connections[connection_channel].close
   end
 
   def connection_to(connection_channel, connection_url)
@@ -23,25 +33,35 @@ class WebsocketClientConnector
     @@connections[connection_channel] = connection
 
     connection.on :message do |message|
-      puts message
-      WebsocketClientConnector.instance.handle_message(connection_channel, message)
+      WebsocketClientConnector.instance.handle_message(connection, message)
     end
 
     connection.on :close do |event|
+      puts "Closing connection ..."
       @@connections.delete(connection_channel)
     end
 
     connection.on :error do |error|
       puts "Error: #{error}"
-      puts "Closing connection ..."
-      @@connections[connection_channel].close
-      @@connections.delete(connection_channel)
+      #@@connections[connection_channel].close
+      #@@connections.delete(connection_channel)
     end
+
+    return connection
   end
 
-  def handle_message(target, message)
+  def handle_message(connection, message)
     puts message
-    send_message(target, message)
+    parsed_message = JSON.parse(message.data)
+    if(parsed_message.key?('method'.freeze))
+      connection.emit parsed_message['method'].to_sym, parsed_message
+    elsif(parsed_message.key?('result'.freeze))
+      connection.emit :result, parsed_message
+    elsif(parsed_message.key?('error'.freeze))
+      connection.emit :error, parsed_message['error']
+    else
+      puts message
+    end
   end
 
 end

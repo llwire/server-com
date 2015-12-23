@@ -20,7 +20,7 @@ class SocketActor(rpcHub: ActorRef, out: ActorRef, actorMode: Any) extends Actor
   def receive = LoggingReceive {
     case Ping => {
       Logger.info("Heartbeat")
-      out ! Json.obj()
+      //out ! Json.obj()
     }
     case js:JsValue if(actorMode == Requester) => {
       Logger.info("Requester: send message to hub -> " + js.toString())

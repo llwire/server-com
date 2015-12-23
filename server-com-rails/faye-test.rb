@@ -10,7 +10,7 @@ EM.run {
     msg = {
       jsonrpc: "2.0",
       method: "echo",
-      data: {
+      params: {
         x: "test"
       },
       id: "iowirpqiwr"
